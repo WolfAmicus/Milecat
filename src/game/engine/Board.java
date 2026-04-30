@@ -5,6 +5,7 @@ import java.util.Collections;
 
 import game.engine.cards.Card;
 import game.engine.cells.*;
+import game.engine.exceptions.InvalidMoveException;
 import game.engine.monsters.Monster;
 
 public class Board {
@@ -18,6 +19,10 @@ public class Board {
 		stationedMonsters = new ArrayList<Monster>();
 		originalCards = readCards;
 		cards = new ArrayList<Card>();
+
+		//.............. break milestone 1 test
+		// setCardsByRarity();
+    	// reloadCards();
 	}
 	
 	public Cell[][] getBoardCells() {
@@ -101,53 +106,75 @@ public class Board {
 
    // Noureldin Hany Hassan	
    public void initializeBoard(ArrayList<Cell> specialCells) {
-	    
-	    for (int i = 0; i < 100; i++) {
-	        if (i % 2 == 0) {
-	            setCell(i, new Cell()); 
-	        } else {
-	            setCell(i, new DoorCell()); 
-	        }
-	    }
+        int specialIndex = 0;
 
-	    int specialIndex = 0;
+        for (int i = 0; i < Constants.BOARD_SIZE; i++) {
+            if (i % 2 == 0) {
+                setCell(i, new Cell("Rest Cell")); 
+            } else {
+                setCell(i, specialCells.get(specialIndex));
+                specialIndex++;
+            }
+        }
 
-	   
-	    for (int boardIndex : Constants.CARD_CELL_INDICES) {
-	        setCell(boardIndex, specialCells.get(specialIndex));
-	        specialIndex++;
-	    }
+        for (int boardIndex : Constants.CARD_CELL_INDICES) {
+            setCell(boardIndex, new CardCell("Card Cell"));
+        }
 
-	  
-	    for (int boardIndex : Constants.CONVEYOR_BELT_INDICES) {
-	        setCell(boardIndex, specialCells.get(specialIndex));
-	        specialIndex++;
-	    }
+       
+        for (int boardIndex : Constants.CONVEYOR_CELL_INDICES) {
+            setCell(boardIndex, specialCells.get(specialIndex));
+            specialIndex++;
+        }
 
-	    for (int boardIndex : Constants.CONTAMINATION_SOCK_INDICES) {
-	        setCell(boardIndex, specialCells.get(specialIndex));
-	        specialIndex++;
-	    }
+        for (int boardIndex : Constants.SOCK_CELL_INDICES) {
+            setCell(boardIndex, specialCells.get(specialIndex));
+            specialIndex++;
+        }
 
-	   
-	    for (int boardIndex : Constants.MONSTER_CELL_INDICES) {
-	        setCell(boardIndex, specialCells.get(specialIndex));
-	        specialIndex++;
-	    }
+       
+        for (int i = 0; i < Constants.MONSTER_CELL_INDICES.length; i++) {
+            int boardIndex = Constants.MONSTER_CELL_INDICES[i];
+            Monster m = stationedMonsters.get(i);
+            m.setPosition(boardIndex); 
+            setCell(boardIndex, new MonsterCell("Monster Cell", m));
+        }
+    }
+    
+    public void moveMonster(Monster currentMonster, int roll, Monster opponentMonster) throws InvalidMoveException {
+        int oldPos = currentMonster.getPosition();
+        currentMonster.move(roll);
+        
+        Cell landedCell = getCell(currentMonster.getPosition());
+        landedCell.onLand(currentMonster, opponentMonster);
+        
+        if (currentMonster.getPosition() == opponentMonster.getPosition()) {
+            currentMonster.setPosition(oldPos);
+            throw new InvalidMoveException(); 
+        }
+        
+        if (currentMonster.isConfused()) {
+            currentMonster.decrementConfusion();
+        }
+        if (opponentMonster.isConfused()) {
+            opponentMonster.decrementConfusion();
+        }
 
-	    
-	    for (Monster m : stationedMonsters) {
-	        int pos = m.getPosition(); 
-	        Cell targetCell = getCell(pos); 
-	        targetCell.setLandingMonster(m); 
-	    }
-	}
+        updateMonsterPositions(currentMonster, opponentMonster);
+    }
+    
+    private void updateMonsterPositions(Monster player, Monster opponent) {
+        for (int i = 0; i < Constants.BOARD_SIZE; i++) {
+            Cell c = getCell(i);
+            if (!(c instanceof MonsterCell)) {
+                c.setMonster(null);
+            }
+        }
+        
+        getCell(player.getPosition()).setMonster(player);
+        getCell(opponent.getPosition()).setMonster(opponent);
+    }
    
 	//...........................................................................................................................................
-	
 
-
-
-
-	
 }
